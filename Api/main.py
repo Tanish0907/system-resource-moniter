@@ -112,6 +112,16 @@ class ProcessInfo(BaseModel):
     num_threads: int
     nice: Optional[int]
 
+class UrlCheckRequest(BaseModel):
+    url: str
+
+class UrlCheckResponse(BaseModel):
+    url: str
+    is_success: bool
+    is_html: bool
+    status_code: Optional[int] = None
+    error: Optional[str] = None
+
 @app.get("/api")
 def test():
     return({"api":"running"})
@@ -422,3 +432,65 @@ def get_all():
 @app.on_event("shutdown")
 def shutdown_event():
     nvmlShutdown()
+
+@app.post("/api/check-url", response_model=UrlCheckResponse)
+async def check_url(request: UrlCheckRequest):
+    """Check if a URL is accessible and returns HTML content"""
+    try:
+        import aiohttp
+        from aiohttp.client_exceptions import ClientError
+        import asyncio
+
+        try:
+            timeout = aiohttp.ClientTimeout(total=3)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.get(request.url, headers={"Accept": "text/html"}) as response:
+                    # Check for HTML content type
+                    content_type = response.headers.get("Content-Type", "")
+                    is_html = "text/html" in content_type.lower()
+                    
+                    # Check for successful status code
+                    is_success = response.status >= 200 and response.status < 300
+                    
+                    return UrlCheckResponse(
+                        url=request.url,
+                        is_success=is_success,
+                        is_html=is_html,
+                        status_code=response.status
+                    )
+        except (ClientError, asyncio.TimeoutError) as e:
+            # Handle connection errors
+            return UrlCheckResponse(
+                url=request.url,
+                is_success=False,
+                is_html=False,
+                error=str(e)
+            )
+    except Exception as e:
+        # Fallback to requests library if aiohttp is not available
+        import requests
+        from requests.exceptions import RequestException
+        
+        try:
+            response = requests.get(request.url, timeout=3, headers={"Accept": "text/html"})
+            
+            # Check for HTML content type
+            content_type = response.headers.get("Content-Type", "")
+            is_html = "text/html" in content_type.lower()
+            
+            # Check for successful status code
+            is_success = response.status_code >= 200 and response.status_code < 300
+            
+            return UrlCheckResponse(
+                url=request.url,
+                is_success=is_success,
+                is_html=is_html,
+                status_code=response.status_code
+            )
+        except RequestException as e:
+            return UrlCheckResponse(
+                url=request.url,
+                is_success=False,
+                is_html=False,
+                error=str(e)
+            )
