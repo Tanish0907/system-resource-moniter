@@ -1,16 +1,18 @@
 # System Resource Monitor
 
-A comprehensive system monitoring tool that provides real-time information about CPU, GPU, RAM, Disk, Network, and Docker containers.
+A comprehensive system monitoring tool that provides real-time information about CPU, GPU, RAM, Disk, Network, Docker containers, Processes, and Open Ports.
 
 ## Features
 
-- Real-time CPU monitoring (utilization, temperature, frequency)
-- GPU monitoring (NVIDIA)
-- RAM usage tracking
-- Disk usage monitoring
-- Network interface statistics
-- Docker container monitoring
-- Modern React frontend with Material UI
+- **CPU Monitoring**: Real-time utilization, temperature, frequencies per core
+- **GPU Monitoring**: NVIDIA GPU temperature, memory usage, and utilization
+- **RAM Usage**: Total, used, free memory and utilization percentage
+- **Disk Monitoring**: Usage statistics for all mounted filesystems
+- **Network Interfaces**: Statistics for all network interfaces including throughput
+- **Process Monitoring**: All running processes with user, CPU/memory usage, and status
+- **Open Ports**: TCP/UDP ports in use across all network interfaces
+- **Docker Containers**: Running containers with status and port mapping
+- **Modern UI**: React frontend with Material UI components and real-time updates
 
 ## Running as a Single Service
 
@@ -20,8 +22,8 @@ This application can run as a single service without Docker, serving both the fr
 
 - Python 3.8+ with pip
 - Node.js 18+ and npm (for building the frontend)
-- NVIDIA drivers (for GPU monitoring)
-- Docker daemon (for container monitoring)
+- NVIDIA drivers (for GPU monitoring, optional)
+- Docker daemon (for container monitoring, optional)
 
 ### Quick Start
 
@@ -33,71 +35,83 @@ This application can run as a single service without Docker, serving both the fr
 
 2. Make the startup script executable:
    ```
-   chmod +x start.sh
+   chmod +x serve.sh
    ```
 
 3. Run the application:
    ```
-   ./start.sh
+   ./serve.sh
    ```
 
 4. Access the application in your browser:
    ```
-   http://localhost:8000
+   http://localhost:3000
    ```
 
-### What Happens Under the Hood
+### Features in Detail
 
-The startup script:
-1. Creates a Python virtual environment
-2. Installs the required Python dependencies
-3. Runs the environment check to verify system access
-4. Builds the React frontend and copies it to the static directory
-5. Starts a FastAPI server that serves both the API and static frontend files
+#### Process Monitoring
+- View all running processes and services
+- Filter processes by name, user, PID, or command line
+- Sort by CPU usage, memory usage, or PID
+- See detailed information including:
+  - Process status with visual indicators
+  - CPU and memory consumption percentages
+  - User running each process
+  - Process creation time
+  - Number of threads
+  - Full command line arguments (via tooltip)
 
-### Manual Setup
+#### Open Ports Monitoring
+- See all open TCP and UDP ports on all interfaces
+- Information includes:
+  - Protocol (TCP/UDP)
+  - Local and remote IP/port
+  - Connection status
+  - Associated process name and PID
 
-If you prefer to set up and run the application manually:
+#### Docker Container Monitoring
+- View all running Docker containers
+- See container status, image name, and port mappings
+- Track container resource usage
 
-1. Set up the Python environment:
-   ```
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install -r Api/requirements.txt
-   ```
+### Architecture
 
-2. Build the frontend:
-   ```
-   cd frontend
-   npm install
-   npm run build
-   ```
+- **Frontend**: React with TypeScript, Material UI, recharts for visualizations
+- **Backend**: FastAPI (Python) with:
+  - psutil for system metrics
+  - pynvml for NVIDIA GPU metrics
+  - docker-py for container monitoring
 
-3. Copy the frontend build to the API static directory:
-   ```
-   mkdir -p ../Api/static
-   cp -r build/* ../Api/static/
-   ```
+### Troubleshooting
 
-4. Run the combined service:
-   ```
-   cd ../Api
-   python serve.py
-   ```
+#### Process Monitoring Issues
+- Some process information may be limited due to permission issues
+- Run with elevated permissions to see all process details
+- The process list is automatically sorted by memory usage (can be changed in the UI)
 
-## Troubleshooting
+#### Port Monitoring Issues
+- May require elevated permissions to see all ports
+- Some special ports might not appear due to system restrictions
 
-### GPU Monitoring Issues
-- Ensure NVIDIA drivers are installed and working
+#### GPU Monitoring Issues
+- Requires NVIDIA drivers to be installed and working
 - Run `nvidia-smi` to verify GPU access
 - The application will function without GPU monitoring if not available
 
-### Docker Container Monitoring Issues
-- Ensure Docker daemon is running: `systemctl status docker`
-- Verify the user has permission to access the Docker socket
+#### Docker Container Monitoring Issues
+- Requires Docker daemon to be running
+- Verify user has permission to access the Docker socket
 - The application will function without container monitoring if not available
 
-## Architecture
+## Security Considerations
 
-- **Frontend**: React, Material UI, recharts for visualizations
-- **Backend**: FastAPI, Python with psutil, pynvml, and docker SDK 
+The system resource monitor needs various system permissions to operate fully:
+
+- Reading process information (may be restricted by user permissions)
+- Reading network socket information for port monitoring
+- Access to the Docker socket for container monitoring
+- Access to GPU devices for monitoring
+- Access to system sensors for temperature readings
+
+For full functionality, consider running the application with appropriate permissions. 
